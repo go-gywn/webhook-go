@@ -60,6 +60,41 @@ func (o *Hook) Upsert(columns ...string) error {
 	return result.Error
 }
 
+// Notification notification alert - single alert
+type Notification struct {
+	Alertname string `form:"alertname"    json:"alertname"`
+	Instance  string `form:"instance"  json:"instance"`
+	Level     string `form:"level"     json:"level"`
+	Summary   string `form:"summary"   json:"summary"`
+	Message   string `form:"message"   json:"message"`
+}
+
+// CheckForm check form
+func (o *Notification) CheckForm() error {
+	var err error
+
+	if strings.TrimSpace(o.Instance) == "" {
+		return fmt.Errorf("instance empty")
+	}
+
+	if _, ok := common.Cfg.Webhook.Targets[o.Level]; !ok {
+		return fmt.Errorf("level '" + o.Level + "' not in target")
+	}
+
+	if strings.TrimSpace(o.Message) == "" {
+		return fmt.Errorf("empty message")
+	}
+
+	if strings.TrimSpace(o.Alertname) == "" {
+		o.Alertname = "unknown"
+	}
+	if strings.TrimSpace(o.Summary) == "" {
+		o.Summary = o.Alertname
+	}
+
+	return err
+}
+
 // HookIgnore hook ignore target
 type HookIgnore struct {
 	Instance  string     `form:"instance"    json:"instance"      gorm:"column:instance;     type:varchar(32) not null default '*'; primaryKey"`
