@@ -61,9 +61,9 @@ loglevel: "RELEASE" ## DEBUG / TEST / RELEASE
 timezone: "Asia/Seoul"
 database:
   host: "127.0.0.1:3306"
-  user: "dbadmin"
+  user: "webhook"
   pass: "l-6ILJ3Y6yahD7ibKwNe-t12rt1ahMUU6mI="
-  schema: "dbadmin"
+  schema: "webhook"
 webhook:
   template: "tempalte.tpl"
   labelmapper:
