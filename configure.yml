@@ -1,0 +1,30 @@
+base: "webhook"
+port: ":52802"
+# loglevel: "RELEASE" ## DEBUG / TEST / RELEASE
+timezone: "Asia/Seoul"
+
+database:
+  host: "127.0.0.1:3306"
+  user: "dbadmin"
+  pass: "l-6ILJ3Y6yahD7ibKwNe-t12rt1ahMUU6mI="
+  schema: "dbadmin"
+
+webhook:
+  template: "tempalte.tpl"
+  labelmapper:
+    alertname: "alertname"
+    instance: "instance"
+    level: "level"
+    job: "job"
+  annotationmapper:
+    description: "description"
+    summary: "summary"
+  targets:
+    critical:
+      api: "http://127.0.0.1:52802/webhook/hook/test"
+      params: "id=12345&message=[[message]]"
+      method: "POST"
+    warning:
+      api: "http://127.0.0.1:52802/webhook/hook/test"
+      params: "id=54321&message=[[message]]"
+      method: "POST"
