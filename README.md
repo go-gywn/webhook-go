@@ -130,9 +130,10 @@ POST   | /webhook/hook/template/reload  | template reload
 POST   | /webhook/hook/ignore           | add new to ignore alert
 DELETE | /webhook/hook/ignore           | delete ingnored alert
 POST   | /webhook/hook/send             | webhook endpoint, this is for AlertManager webhook config
+POST   | /webhook/hook/shoot            | One time alert POST API
+GET    | /webhook/hook/shoot            | One time alert GET API
 POST   | /webhook/hook/test             | TEST listen POST API
 GET    | /webhook/hook/test             | TEST listen GET API
-GET    | /webhook/hook/test/shoot       | TEST alert shoot
 
 ### Example
 1. Template reload
@@ -170,6 +171,14 @@ GET    | /webhook/hook/test/shoot       | TEST alert shoot
     --data-urlencode 'starts_at=2020-09-14T00:00:00+09:00' \
     --data-urlencode 'ends_at=2020-09-21T00:00:00+09:00' \
     127.0.0.1:52802/webhook/hook/template/reload
+
+    ## Send single alert
+    curl -XPOST \
+    --data-urlencode 'instance=test01' \
+    --data-urlencode 'level=critical' \
+    --data-urlencode 'summary=test alert summary' \
+    --data-urlencode 'message=this is test alert message' \
+    127.0.0.1:52802/webhook/hook/shoot
     ```
 Enjoy!
 
