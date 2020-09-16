@@ -34,7 +34,9 @@ func InitDatabase() {
 	}
 
 	dsn := user + ":" + pass + "@tcp(" + host + ")/" + schema + "?charset=utf8&parseTime=True&loc=Local"
-	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		SkipDefaultTransaction: true,
+	})
 	common.PanicIf(err)
 
 	sqlDB, err := db.DB()

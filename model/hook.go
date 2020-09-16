@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/go-gywn/webhook-go/common"
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
 
@@ -16,9 +17,9 @@ type Hook struct {
 	Instance    string       `json:"instance"      gorm:"column:instance;     type:varchar(32) not null default ''; index:ix_inst,priority:1"`
 	Job         string       `json:"job"           gorm:"column:job;          type:varchar(10) not null default ''"`
 	Level       string       `json:"level"         gorm:"column:level;        type:varchar(10) not null default ''"`
-	Ignored     string       `json:"ignored"       gorm:"column:ignored;      type:varchar(1) not null default 'N'"`
+	Ignored     string       `json:"ignored"       gorm:"column:ignored;      type:varchar(1) not null default 'N'; index:ix_ignored,priority:1"`
 	Status      string       `json:"status"        gorm:"column:status;       type:varchar(10) not null default ''"`
-	StartsAt    *time.Time   `json:"starts_at"     gorm:"column:starts_at;    type:datetime(3) null; index:ix_name,priority:2; index:ix_inst,priority:2"`
+	StartsAt    *time.Time   `json:"starts_at"     gorm:"column:starts_at;    type:datetime(3) null; index:ix_startat; index:ix_name,priority:2; index:ix_inst,priority:2; index:ix_ignored,priority:2"`
 	EndsAt      *time.Time   `json:"ends_at"       gorm:"column:ends_at;      type:datetime(3) null"`
 	HookDetails []HookDetail `json:"hook_details"  gorm:"-"`
 	UpdatedAt   time.Time    `json:"updated_at"`
@@ -43,22 +44,23 @@ func (o *Hook) Upsert(columns ...string) error {
 		columns = GetUpsertAppendColumns(o, columns)
 	}
 
-	// Insert hook main (Upsert)
-	result := db.Clauses(clause.OnConflict{
-		DoUpdates: clause.AssignmentColumns(columns),
-	}).Create(&o)
-	if result.Error != nil {
-		return result.Error
-	}
-
-	columns = GetUpsertAllColumns(&HookDetail{})
-	for _, hookDetail := range o.HookDetails {
-		db.Clauses(clause.OnConflict{
+	return db.Transaction(func(tx *gorm.DB) error {
+		// Insert hook main (Upsert)
+		result := db.Clauses(clause.OnConflict{
 			DoUpdates: clause.AssignmentColumns(columns),
-		}).Create(&hookDetail)
-	}
+		}).Create(&o)
+		if result.Error != nil {
+			return result.Error
+		}
 
-	return result.Error
+		columns = GetUpsertAllColumns(&HookDetail{})
+		for _, hookDetail := range o.HookDetails {
+			result = db.Clauses(clause.OnConflict{
+				DoUpdates: clause.AssignmentColumns(columns),
+			}).Create(&hookDetail)
+		}
+		return result.Error
+	})
 }
 
 // HookIgnore hook ignore target
