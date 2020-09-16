@@ -143,18 +143,18 @@ GET    | /webhook/hook/test             | TEST listen GET API
 2. Add ignore target
     ```bash
     ## Ignore all alert for 1 hour(default)
-    curl -XPOST 127.0.0.1:52802/webhook/hook/template/reload
+    curl -XPOST 127.0.0.1:52802/webhook/hook/ignore
 
     ## Ignore ena031 instance for 1 hour(default)
     curl -XPOST \
     --data-urlencode 'instance=ena031' \
-    127.0.0.1:52802/webhook/hook/template/reload
+    127.0.0.1:52802/webhook/hook/ignore
 
     ## Ignore "node_cpu_usage" alert from ena031 instance
     curl -XPOST \
     --data-urlencode 'instance=ena031' \
     --data-urlencode 'alert_name=node_cpu_usage' \
-    127.0.0.1:52802/webhook/hook/template/reload
+    127.0.0.1:52802/webhook/hook/ignore
 
     ## Ignore "node_cpu_usage" resolved alert from ena031 instance, permanently
     curl -XPOST \
@@ -163,14 +163,14 @@ GET    | /webhook/hook/test             | TEST listen GET API
     --data-urlencode 'job=linux' \
     --data-urlencode 'status=resolved' \
     --data-urlencode 'forever=true' \
-    127.0.0.1:52802/webhook/hook/template/reload
+    127.0.0.1:52802/webhook/hook/ignore
 
     ## Ignore alert from ena031 instance for a specific time
     curl -XPOST \
     --data-urlencode 'instance=ena031' \
     --data-urlencode 'starts_at=2020-09-14T00:00:00+09:00' \
     --data-urlencode 'ends_at=2020-09-21T00:00:00+09:00' \
-    127.0.0.1:52802/webhook/hook/template/reload
+    127.0.0.1:52802/webhook/hook/ignore
 
     ## Send single alert
     curl -XPOST \
