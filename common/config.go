@@ -32,6 +32,7 @@ type Database struct {
 
 // Webhook Webhook
 type Webhook struct {
+	SyncSec          int32
 	Template         string
 	LabelMapper      map[string]string
 	AnnotationMapper map[string]string
@@ -124,6 +125,10 @@ func init() {
 		if val, ok := Cfg.Webhook.AnnotationMapper[key]; !ok || val == "" {
 			Cfg.Webhook.AnnotationMapper[key] = key
 		}
+	}
+
+	if Cfg.Webhook.SyncSec == 0 {
+		Cfg.Webhook.SyncSec = 60
 	}
 	logger.Debug("Config", Cfg)
 	os.Setenv("TZ", Cfg.Timezone)

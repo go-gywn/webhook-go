@@ -253,7 +253,7 @@ func startHookIgnoreMapThread() {
 	go func() {
 		for {
 			(&HookIgnore{}).syncHookIgnoreCache()
-			time.Sleep(5 * time.Minute)
+			time.Sleep(time.Duration(common.Cfg.Webhook.SyncSec) * time.Second)
 		}
 	}()
 }

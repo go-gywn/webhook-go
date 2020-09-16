@@ -272,6 +272,7 @@ func hookSender(chanHook chan t.Alert) {
 				}
 			default:
 				logger.Info("DB - skip status", hook.Status, string(jsonMarshal))
+				continue
 			}
 
 			if hook.Ignored == "Y" {
