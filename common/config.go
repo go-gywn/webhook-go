@@ -32,7 +32,7 @@ type Database struct {
 
 // Webhook Webhook
 type Webhook struct {
-	SyncSec          int32
+	SyncSec          int
 	Template         string
 	LabelMapper      map[string]string
 	AnnotationMapper map[string]string
