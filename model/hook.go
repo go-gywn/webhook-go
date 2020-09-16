@@ -16,6 +16,7 @@ type Hook struct {
 	Instance    string       `json:"instance"      gorm:"column:instance;     type:varchar(32) not null default ''; index:ix_inst"`
 	Job         string       `json:"job"           gorm:"column:job;          type:varchar(10) not null default ''"`
 	Level       string       `json:"level"         gorm:"column:level;        type:varchar(10) not null default ''"`
+	Ignored     string       `json:"ignored"       gorm:"column:ignored;      type:varchar(1) not null default 'N'"`
 	Status      string       `json:"status"        gorm:"column:status;       type:varchar(10) not null default ''"`
 	StartsAt    *time.Time   `json:"starts_at"     gorm:"column:starts_at;    type:datetime(3) null"`
 	EndsAt      *time.Time   `json:"ends_at"       gorm:"column:ends_at;      type:datetime(3) null"`
@@ -60,41 +61,6 @@ func (o *Hook) Upsert(columns ...string) error {
 	return result.Error
 }
 
-// Notification notification alert - single alert
-type Notification struct {
-	Alertname string `form:"alertname"    json:"alertname"`
-	Instance  string `form:"instance"  json:"instance"`
-	Level     string `form:"level"     json:"level"`
-	Summary   string `form:"summary"   json:"summary"`
-	Message   string `form:"message"   json:"message"`
-}
-
-// CheckForm check form
-func (o *Notification) CheckForm() error {
-	var err error
-
-	if strings.TrimSpace(o.Instance) == "" {
-		return fmt.Errorf("instance empty")
-	}
-
-	if _, ok := common.Cfg.Webhook.Targets[o.Level]; !ok {
-		return fmt.Errorf("level '" + o.Level + "' not in target")
-	}
-
-	if strings.TrimSpace(o.Message) == "" {
-		return fmt.Errorf("empty message")
-	}
-
-	if strings.TrimSpace(o.Alertname) == "" {
-		o.Alertname = "unknown"
-	}
-	if strings.TrimSpace(o.Summary) == "" {
-		o.Summary = o.Alertname
-	}
-
-	return err
-}
-
 // HookIgnore hook ignore target
 type HookIgnore struct {
 	Instance  string     `form:"instance"    json:"instance"      gorm:"column:instance;     type:varchar(32) not null default '*'; primaryKey"`
@@ -118,7 +84,7 @@ func (o *HookIgnore) Upsert() error {
 	o.IsTarget()
 
 	// cache update
-	UpdateHookIgnoreMap()
+	o.updateHookIgnoreCache()
 	return result.Error
 }
 
@@ -128,8 +94,44 @@ func (o *HookIgnore) Delete() (int64, error) {
 	result := db.Delete(o)
 
 	// cache update
-	UpdateHookIgnoreMap()
+	o.deleteHookIgnoreCache()
 	return result.RowsAffected, result.Error
+}
+
+// new ignore cache
+func (o *HookIgnore) updateHookIgnoreCache() {
+	logger.Debug("Update cache", o)
+	hookIgnoreMap[o.GetKey()] = *o
+}
+
+// del ignore cache
+func (o *HookIgnore) deleteHookIgnoreCache() {
+	logger.Debug("Delete cache", o)
+	delete(hookIgnoreMap, o.GetKey())
+}
+
+// full sync with database
+func (o *HookIgnore) syncHookIgnoreCache() {
+	var hookIgnores []HookIgnore
+
+	logger.Info("Update hook ignore map start")
+	// Get all hook ignores from database
+	if result := db.Find(&hookIgnores); result.Error != nil {
+		logger.Error(result.Error)
+		return
+	}
+
+	// Cache update
+	tmpHookIgnoreMap := make(map[string]HookIgnore)
+	for _, hookIgnore := range hookIgnores {
+		k := hookIgnore.GetKey()
+		tmpHookIgnoreMap[k] = hookIgnore
+	}
+	hookIgnoreMtx.Lock()
+	hookIgnoreMap = tmpHookIgnoreMap
+	hookIgnoreMtx.Unlock()
+	logger.Debug("hookIgnoreMap", hookIgnoreMap)
+	logger.Info("Update hook ignore map end")
 }
 
 // IsTarget check map
@@ -243,4 +245,48 @@ func (o *HookIgnore) GetKey() string {
 	key := common.MD5(k)
 	logger.Debug("[key]", k, "[MD5]", key)
 	return common.MD5(k)
+}
+
+func startHookIgnoreMapThread() {
+	go func() {
+		for {
+			(&HookIgnore{}).syncHookIgnoreCache()
+			time.Sleep(5 * time.Minute)
+		}
+	}()
+}
+
+// Notification notification alert - single alert
+type Notification struct {
+	Alertname string `form:"alertname"    json:"alertname"`
+	Instance  string `form:"instance"  json:"instance"`
+	Level     string `form:"level"     json:"level"`
+	Summary   string `form:"summary"   json:"summary"`
+	Message   string `form:"message"   json:"message"`
+}
+
+// CheckForm check form
+func (o *Notification) CheckForm() error {
+	var err error
+
+	if strings.TrimSpace(o.Instance) == "" {
+		return fmt.Errorf("instance empty")
+	}
+
+	if _, ok := common.Cfg.Webhook.Targets[o.Level]; !ok {
+		return fmt.Errorf("level '" + o.Level + "' not in target")
+	}
+
+	if strings.TrimSpace(o.Message) == "" {
+		return fmt.Errorf("empty message")
+	}
+
+	if strings.TrimSpace(o.Alertname) == "" {
+		o.Alertname = "unknown"
+	}
+	if strings.TrimSpace(o.Summary) == "" {
+		o.Summary = o.Alertname
+	}
+
+	return err
 }
