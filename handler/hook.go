@@ -136,7 +136,7 @@ func startHook(r *gin.RouterGroup) {
 	})
 
 	r.POST("/hook/test", func(c *gin.Context) {
-		logger.Info("GET request")
+		logger.Info("POST request")
 		logger.Info(c.GetPostForm("message"))
 		Success(c, "ok")
 	})
@@ -242,50 +242,15 @@ func hookSender(chanHook chan t.Alert) {
 			// ============================================
 			// Check ignore hook
 			// ============================================
+			logger.Debug("Check ignore hook")
 			hookIgnore := &model.HookIgnore{
 				Instance:  hook.Instance,
 				AlertName: hook.AlertName,
 				Status:    hook.Status,
 			}
 
-			logger.Debug("IsTarget", hookIgnore.IsTarget())
 			if hookIgnore.IsTarget() {
 				hook.Ignored = "Y"
-
-				// ============================================
-				// Send alarm
-				// ============================================
-				httpClient := &http.Client{Timeout: 3 * time.Second}
-				urlencodedParams := strings.Replace(apiParams, "[[message]]", url.QueryEscape(message), -1)
-				switch strings.ToUpper(target.Method) {
-				case "POST":
-					resp, err := httpClient.Post(api, "application/x-www-form-urlencoded", strings.NewReader(urlencodedParams))
-					if err != nil {
-						logger.Error("API -", err.Error(), string(jsonMarshal))
-						continue
-					}
-					if resp.StatusCode != 200 {
-						b, _ := ioutil.ReadAll(resp.Body)
-						logger.Error("API code -", resp.StatusCode, "-", string(b), string(jsonMarshal))
-						continue
-					}
-					defer resp.Body.Close()
-				case "GET":
-					resp, err := httpClient.Get(api + "?" + urlencodedParams)
-					if err != nil {
-						logger.Error("API -", err.Error(), string(jsonMarshal))
-						continue
-					}
-					if resp.StatusCode != 200 {
-						b, _ := ioutil.ReadAll(resp.Body)
-						logger.Error("API code -", resp.StatusCode, "-", string(b), string(jsonMarshal))
-						continue
-					}
-					defer resp.Body.Close()
-				default:
-					logger.Error("unsupport method -", target.Method, string(jsonMarshal))
-					continue
-				}
 			}
 
 			// ============================================
@@ -307,6 +272,43 @@ func hookSender(chanHook chan t.Alert) {
 				}
 			default:
 				logger.Info("DB - skip status", hook.Status, string(jsonMarshal))
+			}
+
+			if hook.Ignored == "Y" {
+				return
+			}
+			// ============================================
+			// Send alarm
+			// ============================================
+			httpClient := &http.Client{Timeout: 3 * time.Second}
+			urlencodedParams := strings.Replace(apiParams, "[[message]]", url.QueryEscape(message), -1)
+			switch strings.ToUpper(target.Method) {
+			case "POST":
+				resp, err := httpClient.Post(api, "application/x-www-form-urlencoded", strings.NewReader(urlencodedParams))
+				if err != nil {
+					logger.Error("API -", err.Error(), string(jsonMarshal))
+					continue
+				}
+				if resp.StatusCode != 200 {
+					b, _ := ioutil.ReadAll(resp.Body)
+					logger.Error("API code -", resp.StatusCode, "-", string(b), string(jsonMarshal))
+					continue
+				}
+				defer resp.Body.Close()
+			case "GET":
+				resp, err := httpClient.Get(api + "?" + urlencodedParams)
+				if err != nil {
+					logger.Error("API -", err.Error(), string(jsonMarshal))
+					continue
+				}
+				if resp.StatusCode != 200 {
+					b, _ := ioutil.ReadAll(resp.Body)
+					logger.Error("API code -", resp.StatusCode, "-", string(b), string(jsonMarshal))
+					continue
+				}
+				defer resp.Body.Close()
+			default:
+				logger.Error("unsupport method -", target.Method, string(jsonMarshal))
 			}
 		}
 	}()
