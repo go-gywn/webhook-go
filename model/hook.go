@@ -12,13 +12,13 @@ import (
 // Hook Hook
 type Hook struct {
 	HookID      string       `json:"hook_id"       gorm:"column:hook_id;      type:varchar(32) not null default ''; primaryKey"`
-	AlertName   string       `json:"alert_name"    gorm:"column:alert_name;   type:varchar(32) not null default ''; index:ix_name"`
-	Instance    string       `json:"instance"      gorm:"column:instance;     type:varchar(32) not null default ''; index:ix_inst"`
+	AlertName   string       `json:"alert_name"    gorm:"column:alert_name;   type:varchar(32) not null default ''; index:ix_name,priority:1"`
+	Instance    string       `json:"instance"      gorm:"column:instance;     type:varchar(32) not null default ''; index:ix_inst,priority:1"`
 	Job         string       `json:"job"           gorm:"column:job;          type:varchar(10) not null default ''"`
 	Level       string       `json:"level"         gorm:"column:level;        type:varchar(10) not null default ''"`
 	Ignored     string       `json:"ignored"       gorm:"column:ignored;      type:varchar(1) not null default 'N'"`
 	Status      string       `json:"status"        gorm:"column:status;       type:varchar(10) not null default ''"`
-	StartsAt    *time.Time   `json:"starts_at"     gorm:"column:starts_at;    type:datetime(3) null"`
+	StartsAt    *time.Time   `json:"starts_at"     gorm:"column:starts_at;    type:datetime(3) null; index:ix_name,priority:2; index:ix_inst,priority:2"`
 	EndsAt      *time.Time   `json:"ends_at"       gorm:"column:ends_at;      type:datetime(3) null"`
 	HookDetails []HookDetail `json:"hook_details"  gorm:"-"`
 	UpdatedAt   time.Time    `json:"updated_at"`
