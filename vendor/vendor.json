@@ -53,6 +53,12 @@
 			"revisionTime": "2020-08-08T12:32:19Z"
 		},
 		{
+			"checksumSHA1": "jQRG117uuhjGcd7gR90tRvX70+Y=",
+			"path": "github.com/go-gywn/goutil",
+			"revision": "585594b736d5311e81117259d4bf52304f9af11a",
+			"revisionTime": "2020-09-17T01:20:08Z"
+		},
+		{
 			"checksumSHA1": "virQ9Kms0oN/qhI5/hlyVDkSnKI=",
 			"path": "github.com/go-sql-driver/mysql",
 			"revision": "73dc904a9ece5c074295a77abb7a135797a351bf",

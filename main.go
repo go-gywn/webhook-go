@@ -1,18 +1,18 @@
 package main
 
 import (
-	"github.com/go-gywn/webhook-go/common"
+	"github.com/go-gywn/goutil"
 	"github.com/go-gywn/webhook-go/handler"
 	"github.com/go-gywn/webhook-go/model"
 	"golang.org/x/sync/errgroup"
 )
 
 var g errgroup.Group
-var logger = common.NewLogger("main")
+var logger = goutil.GetLogger("main")
 
 func init() {
 	// common.LoadConfigure()
-	model.InitDatabase()
+	model.OpenDatabase()
 }
 
 func main() {

@@ -29,7 +29,7 @@ func startHook(r *gin.RouterGroup) {
 	// =======================
 	// load template
 	// =======================
-	if err := loadTemplate(common.Cfg.Webhook.Template); err != nil {
+	if err := loadTemplate(common.CONF.Webhook.Template); err != nil {
 		fmt.Println(err)
 		loadTemplate()
 	}
@@ -127,7 +127,7 @@ func startHook(r *gin.RouterGroup) {
 	})
 
 	r.POST("/hook/template/reload", func(c *gin.Context) {
-		err := loadTemplate(common.Cfg.Webhook.Template)
+		err := loadTemplate(common.CONF.Webhook.Template)
 		if ErrorIf(c, err) {
 			logger.Error(err)
 			return
@@ -169,7 +169,7 @@ func toPromAlert(o model.Notification) t.Alert {
 }
 
 func hookSender(chanHook chan t.Alert) {
-	var targets = common.Cfg.Webhook.Targets
+	var targets = common.CONF.Webhook.Targets
 	hookDefaultTemplate, _ = template.New("default_template").Parse(defaultTemplate)
 
 	go func() {
@@ -188,20 +188,20 @@ func hookSender(chanHook chan t.Alert) {
 			k += alert.Labels[labelInstance]
 			k += alert.Labels[labelJob]
 			k += alert.Labels[labelLevel]
-			hookID := common.MD5(k)
+			hookID := crypt.MD5(k)
 
 			// ============================================
 			// Generate template variables
 			// ============================================
 			var vars = map[string]interface{}{}
-			for _, v := range common.Cfg.Webhook.LabelMapper {
+			for _, v := range common.CONF.Webhook.LabelMapper {
 				vars[v] = alert.Labels[v]
 			}
-			for _, v := range common.Cfg.Webhook.AnnotationMapper {
+			for _, v := range common.CONF.Webhook.AnnotationMapper {
 				vars[v] = alert.Annotations[v]
 			}
-			startsAt := alert.StartsAt.In(common.Location)
-			endsAt := alert.EndsAt.In(common.Location)
+			startsAt := alert.StartsAt.In(common.GetLocation())
+			endsAt := alert.EndsAt.In(common.GetLocation())
 			vars["startsAt"] = startsAt
 			vars["endsAt"] = endsAt
 			vars["status"] = alert.Status
@@ -315,27 +315,12 @@ func hookSender(chanHook chan t.Alert) {
 	}()
 }
 
-func loadTemplate(tmpl ...string) error {
-	// default template
-	if len(tmpl) == 0 {
-		logger.Info("Load default template")
-		hookTemplate, _ = template.New("template").Parse(defaultTemplate)
-		return nil
+func loadTemplate(path ...string) (err error) {
+	if len(path) == 0 {
+		hookTemplate, _ = fileUtil.GetTemplate("template", defaultTemplate)
 	}
 
-	logger.Info("open template file", common.Cfg.Webhook.Template)
-	tmplData, err := ioutil.ReadFile(tmpl[0])
-	if err != nil {
-		if tmplData, err = ioutil.ReadFile(common.ABS + "/" + tmpl[0]); err != nil {
-			return err
-		}
-	}
-
-	tempTemplate, err := template.New("template").Parse(string(tmplData))
-	if err != nil {
-		return err
-	}
-
-	hookTemplate = tempTemplate
-	return err
+	logger.Info("open template file", common.CONF.Webhook.Template)
+	hookTemplate, err = fileUtil.GetTemplate("template", fileUtil.ReadFile(path[0]))
+	return
 }

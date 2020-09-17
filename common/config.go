@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"time"
 
+	"github.com/go-gywn/goutil"
 	"gopkg.in/yaml.v2"
 )
 
@@ -46,90 +46,91 @@ type WebhookTarget struct {
 	Method string
 }
 
-// Cfg config
-var Cfg Config
+// CONF config
+var CONF Config
 
-// Location location
-var Location *time.Location
-
-// logger
-var logger Logger
-
-// ABS absolute path
-var ABS string
-
-var err error
+var location *time.Location
+var logger = goutil.GetLogger("common")
 
 // LoadConfigure load config
 func init() {
-	if ABS, err = filepath.Abs(filepath.Dir(os.Args[0])); err != nil {
-		panic("set ABS path failed")
-	}
+	var err error
 
-	// Default configure file
-	defaultConfigFile := "configure.yml"
-	_, err := os.Stat(defaultConfigFile)
-	if os.IsNotExist(err) {
-		defaultConfigFile = ABS + "/" + defaultConfigFile
-	}
-
+	// ==========================
+	// get os parameters
+	// ==========================
 	var config, password string
-	flag.StringVar(&config, "config", defaultConfigFile, "configuration")
+	flag.StringVar(&config, "config", "configure.yml", "configuration")
 	flag.StringVar(&password, "password", "", "password")
 	flag.Parse()
 
-	confContent, err := ioutil.ReadFile(config)
-	if err != nil {
+	// ==========================
+	// Read config file
+	// ==========================
+	var b []byte
+	if b, err = ioutil.ReadFile(config); err != nil {
+		logger.Error(err)
+		return
+		//panic(err)
+	}
+
+	if err = yaml.Unmarshal(b, &CONF); err != nil {
 		panic(err)
 	}
 
-	if err := yaml.Unmarshal(confContent, &Cfg); err != nil {
-		panic(err)
-	}
-
-	logger = NewLogger("common")
-
-	if Cfg.Key == "" {
-		Cfg.Key = "03a73f3e7c9a7b38d196cd34c072567e"
+	// ==========================
+	// encrypt password to use
+	// ==========================
+	if CONF.Key == "" {
+		CONF.Key = "03a73f3e7c9a7b38d196cd34c072567e"
 	}
 
 	if password != "" {
-		enc, _ := Encrypt(password)
-		fmt.Printf("<Encrypted>\n%s\n", enc)
+		crypto := goutil.GetCrypto(CONF.Key)
+		fmt.Printf("<Encrypted>\n%s\n", crypto.EncryptAES(password))
 		os.Exit(0)
 	}
 
+	// ==========================
+	// Config parameter check
+	// ==========================
+
 	// Timezone setting
-	if Location, err = time.LoadLocation(Cfg.Timezone); err != nil {
+	if location, err = time.LoadLocation(CONF.Timezone); err != nil {
 		logger.Info("set timezone failed, set to UTC")
-		Location, _ = time.LoadLocation("UTC")
-		os.Setenv("TZ", "UTC")
+		location, _ = time.LoadLocation("UTC")
+		os.Setenv("TZ", CONF.Timezone)
 	}
 
-	// Default label setting
+	// Load default label setting
 	dafaultLabels := []string{"alertname", "instance", "level", "job"}
-	if Cfg.Webhook.LabelMapper == nil {
-		Cfg.Webhook.LabelMapper = map[string]string{}
+	if CONF.Webhook.LabelMapper == nil {
+		CONF.Webhook.LabelMapper = map[string]string{}
 	}
 	for _, key := range dafaultLabels {
-		if val, ok := Cfg.Webhook.LabelMapper[key]; !ok || val == "" {
-			Cfg.Webhook.LabelMapper[key] = key
+		if val, ok := CONF.Webhook.LabelMapper[key]; !ok || val == "" {
+			CONF.Webhook.LabelMapper[key] = key
 		}
 	}
-	// Default annotation label setting
+	// Load default annotation label setting
 	dafaultAnnotations := []string{"description", "summary"}
-	if Cfg.Webhook.AnnotationMapper == nil {
-		Cfg.Webhook.AnnotationMapper = map[string]string{}
+	if CONF.Webhook.AnnotationMapper == nil {
+		CONF.Webhook.AnnotationMapper = map[string]string{}
 	}
 	for _, key := range dafaultAnnotations {
-		if val, ok := Cfg.Webhook.AnnotationMapper[key]; !ok || val == "" {
-			Cfg.Webhook.AnnotationMapper[key] = key
+		if val, ok := CONF.Webhook.AnnotationMapper[key]; !ok || val == "" {
+			CONF.Webhook.AnnotationMapper[key] = key
 		}
 	}
 
-	if Cfg.Webhook.SyncSec == 0 {
-		Cfg.Webhook.SyncSec = 60
+	// Default cache load sec
+	if CONF.Webhook.SyncSec == 0 {
+		CONF.Webhook.SyncSec = 60
 	}
-	logger.Debug("Config", Cfg)
-	os.Setenv("TZ", Cfg.Timezone)
+	logger.Debug("Config", CONF)
+}
+
+// GetLocation GetLocation
+func GetLocation() *time.Location {
+	return location
 }

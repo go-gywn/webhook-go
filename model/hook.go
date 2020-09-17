@@ -238,22 +238,22 @@ func (o *HookIgnore) setDefault() {
 }
 
 // GetKey get hook ignore key
-func (o *HookIgnore) GetKey() string {
+func (o *HookIgnore) GetKey() (key string) {
 	o.setDefault()
 	k := fmt.Sprintf("[%s]", strings.ToLower(o.Instance))
 	k += fmt.Sprintf("[%s]", strings.ToLower(o.AlertName))
 	k += fmt.Sprintf("[%s]", strings.ToLower(o.Job))
 	k += fmt.Sprintf("[%s]", strings.ToLower(o.Status))
-	key := common.MD5(k)
+	key = cryptor.MD5(k)
 	logger.Debug("[key]", k, "[MD5]", key)
-	return common.MD5(k)
+	return
 }
 
 func startHookIgnoreMapThread() {
 	go func() {
 		for {
 			(&HookIgnore{}).syncHookIgnoreCache()
-			time.Sleep(time.Duration(common.Cfg.Webhook.SyncSec) * time.Second)
+			time.Sleep(time.Duration(common.CONF.Webhook.SyncSec) * time.Second)
 		}
 	}()
 }
@@ -275,7 +275,7 @@ func (o *Notification) CheckForm() error {
 		return fmt.Errorf("instance empty")
 	}
 
-	if _, ok := common.Cfg.Webhook.Targets[o.Level]; !ok {
+	if _, ok := common.CONF.Webhook.Targets[o.Level]; !ok {
 		return fmt.Errorf("level '" + o.Level + "' not in target")
 	}
 
