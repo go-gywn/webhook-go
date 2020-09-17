@@ -53,10 +53,10 @@
 			"revisionTime": "2020-08-08T12:32:19Z"
 		},
 		{
-			"checksumSHA1": "jQRG117uuhjGcd7gR90tRvX70+Y=",
+			"checksumSHA1": "A4kbBBYumzDB66f7sNsvikMzZyE=",
 			"path": "github.com/go-gywn/goutil",
-			"revision": "585594b736d5311e81117259d4bf52304f9af11a",
-			"revisionTime": "2020-09-17T01:20:08Z"
+			"revision": "9e5da49e22374fc227057a74daba79d8d5685bea",
+			"revisionTime": "2020-09-17T09:54:26Z"
 		},
 		{
 			"checksumSHA1": "virQ9Kms0oN/qhI5/hlyVDkSnKI=",
@@ -232,6 +232,12 @@
 			"path": "github.com/shurcooL/vfsgen",
 			"revision": "470634d49fc629727d91cbb271d7c6e9bc282b06",
 			"revisionTime": "2020-08-25T13:48:59Z"
+		},
+		{
+			"checksumSHA1": "5ANF5DkdOtBOcLbnktV+NKMUYp8=",
+			"path": "github.com/sirupsen/logrus",
+			"revision": "6699a89a232f3db797f2e280639854bbc4b89725",
+			"revisionTime": "2020-05-28T08:56:38Z"
 		},
 		{
 			"checksumSHA1": "8mJ7vjP4pj4Y8FH5jVT22mW5acA=",

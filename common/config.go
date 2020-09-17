@@ -50,7 +50,7 @@ type WebhookTarget struct {
 var CONF Config
 
 var location *time.Location
-var logger = goutil.GetLogger("common")
+var logger = goutil.GetLogger()
 
 // LoadConfigure load config
 func init() {
@@ -127,7 +127,7 @@ func init() {
 	if CONF.Webhook.SyncSec == 0 {
 		CONF.Webhook.SyncSec = 60
 	}
-	logger.Debug("Config", CONF)
+	logger.Println("start with", CONF)
 }
 
 // GetLocation GetLocation

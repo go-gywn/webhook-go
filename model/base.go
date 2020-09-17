@@ -13,7 +13,7 @@ import (
 )
 
 var db *gorm.DB
-var logger = goutil.GetLogger("model")
+var logger = goutil.GetLogger()
 var cryptor = goutil.GetCrypto(common.CONF.Key)
 
 // ignore hook map
@@ -33,10 +33,13 @@ func OpenDatabase() {
 	pass := cryptor.DecryptAES(common.CONF.Database.Pass)
 
 	dsn := user + ":" + pass + "@tcp(" + host + ")/" + schema + "?charset=utf8&parseTime=True&loc=Local"
-	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+	cfg := &gorm.Config{
 		SkipDefaultTransaction: true,
-	})
-	logger.PanicIf(err)
+	}
+	if db, err = gorm.Open(mysql.Open(dsn), cfg); err != nil {
+		logger.Fatal("mysql.Open failed - ", err)
+		logger.Fatal(err)
+	}
 
 	sqlDB, err := db.DB()
 	sqlDB.SetMaxIdleConns(10)
@@ -52,7 +55,7 @@ func OpenDatabase() {
 		&HookIgnore{},
 	}
 	if err = db.AutoMigrate(syncTargets...); err != nil {
-		logger.PanicIf(err)
+		logger.Fatal("db.AutoMigrate failed - ", err)
 	}
 
 	// ===================================

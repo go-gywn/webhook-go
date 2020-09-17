@@ -8,20 +8,22 @@ import (
 )
 
 var g errgroup.Group
-var logger = goutil.GetLogger("main")
+var logger = goutil.GetLogger()
 
 func init() {
-	// common.LoadConfigure()
+	logger.Debug("[WARNING] Running in \"debug\" mode. Switch to \"release\" mode in production.")
+	logger.Debug("- using env:   export LOGGING=release\n")
 	model.OpenDatabase()
 }
 
 func main() {
+
 	g.Go(func() error {
 		return handler.StartHandler()
 	})
 
 	if err := g.Wait(); err != nil {
-		panic("startup failed")
+		logger.Panic("Startup failed", err)
 	}
 
 }

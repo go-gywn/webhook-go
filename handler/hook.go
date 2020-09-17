@@ -319,7 +319,6 @@ func loadTemplate(path ...string) (err error) {
 	if len(path) == 0 {
 		hookTemplate, _ = fileUtil.GetTemplate("template", defaultTemplate)
 	}
-
 	logger.Info("open template file", common.CONF.Webhook.Template)
 	hookTemplate, err = fileUtil.GetTemplate("template", fileUtil.ReadFile(path[0]))
 	return

@@ -102,13 +102,13 @@ func (o *HookIgnore) Delete() (int64, error) {
 
 // new ignore cache
 func (o *HookIgnore) updateHookIgnoreCache() {
-	logger.Debug("Update cache", o)
+	logger.Debug("Update cache", o.GetKey())
 	hookIgnoreMap[o.GetKey()] = *o
 }
 
 // del ignore cache
 func (o *HookIgnore) deleteHookIgnoreCache() {
-	logger.Debug("Delete cache", o)
+	logger.Debug("Delete cache", o.GetKey())
 	delete(hookIgnoreMap, o.GetKey())
 }
 
@@ -116,10 +116,13 @@ func (o *HookIgnore) deleteHookIgnoreCache() {
 func (o *HookIgnore) syncHookIgnoreCache() {
 	var hookIgnores []HookIgnore
 
-	logger.Info("Update hook ignore map start")
+	logger.Info("syncHookIgnoreCache() Update hook ignore map start")
+	hookIgnoreMtx.Lock()
+	defer hookIgnoreMtx.Unlock()
+
 	// Get all hook ignores from database
 	if result := db.Find(&hookIgnores); result.Error != nil {
-		logger.Error(result.Error)
+		logger.Error("syncHookIgnoreCache() > db.Find(&hookIgnores) - ", result.Error)
 		return
 	}
 
@@ -128,12 +131,10 @@ func (o *HookIgnore) syncHookIgnoreCache() {
 	for _, hookIgnore := range hookIgnores {
 		k := hookIgnore.GetKey()
 		tmpHookIgnoreMap[k] = hookIgnore
+		logger.Debug("syncHookIgnoreCache() >> entry: ", k)
 	}
-	hookIgnoreMtx.Lock()
 	hookIgnoreMap = tmpHookIgnoreMap
-	hookIgnoreMtx.Unlock()
-	logger.Debug("hookIgnoreMap", hookIgnoreMap)
-	logger.Info("Update hook ignore map end")
+	logger.Info("syncHookIgnoreCache() End, ", len(hookIgnoreMap), " entries")
 }
 
 // IsTarget check map
@@ -177,9 +178,10 @@ func (o *HookIgnore) IsTarget() bool {
 
 	return false
 }
+
 func (o *HookIgnore) isValiadRange() bool {
 	if o.Forever {
-		logger.Debug("forever skip =>", o)
+		logger.Debug("forever skip =>", o.GetKey())
 		return true
 	}
 
@@ -238,14 +240,13 @@ func (o *HookIgnore) setDefault() {
 }
 
 // GetKey get hook ignore key
-func (o *HookIgnore) GetKey() (key string) {
+func (o *HookIgnore) GetKey() (md5 string) {
 	o.setDefault()
 	k := fmt.Sprintf("[%s]", strings.ToLower(o.Instance))
 	k += fmt.Sprintf("[%s]", strings.ToLower(o.AlertName))
 	k += fmt.Sprintf("[%s]", strings.ToLower(o.Job))
 	k += fmt.Sprintf("[%s]", strings.ToLower(o.Status))
-	key = cryptor.MD5(k)
-	logger.Debug("[key]", k, "[MD5]", key)
+	md5 = cryptor.MD5(k)
 	return
 }
 

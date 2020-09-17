@@ -10,7 +10,7 @@ import (
 )
 
 var routerGroup *gin.RouterGroup
-var logger = goutil.GetLogger("handler")
+var logger = goutil.GetLogger()
 var crypt = goutil.GetCrypto(common.CONF.Key)
 var fileUtil = goutil.GetFileUtil()
 
@@ -33,7 +33,7 @@ var labelSummary = common.CONF.Webhook.AnnotationMapper["summary"]
 var labelDescription = common.CONF.Webhook.AnnotationMapper["description"]
 
 func init() {
-	gin.SetMode(goutil.GetLogMode())
+	gin.SetMode(goutil.GinMode())
 }
 
 // StartHandler start API server
