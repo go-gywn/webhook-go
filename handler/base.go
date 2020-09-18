@@ -34,6 +34,7 @@ var labelDescription = common.CONF.Webhook.AnnotationMapper["description"]
 
 func init() {
 	gin.SetMode(goutil.GinMode())
+	gin.SetMode(gin.ReleaseMode)
 }
 
 // StartHandler start API server

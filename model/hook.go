@@ -36,30 +36,30 @@ type HookDetail struct {
 }
 
 // Upsert insert on duplicate update
-func (o *Hook) Upsert(columns ...string) error {
-
-	if len(columns) == 0 {
-		columns = GetUpsertAllColumns(o)
-	} else {
-		columns = GetUpsertAppendColumns(o, columns)
-	}
-
-	return db.Transaction(func(tx *gorm.DB) error {
-		// Insert hook main (Upsert)
-		result := db.Clauses(clause.OnConflict{
-			DoUpdates: clause.AssignmentColumns(columns),
-		}).Create(&o)
-		if result.Error != nil {
-			return result.Error
+func (o *Hook) Upsert(hookColumns ...string) error {
+	return db.Transaction(func(tx *gorm.DB) (err error) {
+		// upsert hook main
+		if len(hookColumns) == 0 {
+			hookColumns = GetUpsertAllColumns(o)
+		} else {
+			hookColumns = GetUpsertAppendColumns(o, hookColumns)
+		}
+		logger.Debug("Hook.Upsert() > ", "columns ", hookColumns)
+		hookClause := clause.OnConflict{DoUpdates: clause.AssignmentColumns(hookColumns)}
+		if result := db.Clauses(hookClause).Create(&o); result.Error != nil {
+			logger.Error("Hook.Upsert() > ", result.Error)
 		}
 
-		columns = GetUpsertAllColumns(&HookDetail{})
+		// upsert hook_detail
+		hookDetailColumns := GetUpsertAllColumns(&HookDetail{})
+		logger.Debug("HookDetail.Upsert() > ", "columns ", hookDetailColumns)
+		hookDetailClause := clause.OnConflict{DoUpdates: clause.AssignmentColumns(hookDetailColumns)}
 		for _, hookDetail := range o.HookDetails {
-			result = db.Clauses(clause.OnConflict{
-				DoUpdates: clause.AssignmentColumns(columns),
-			}).Create(&hookDetail)
+			if result := db.Clauses(hookDetailClause).Create(&hookDetail); result.Error != nil {
+				logger.Error("HookDetail.Upsert() > ", result.Error)
+			}
 		}
-		return result.Error
+		return nil
 	})
 }
 
@@ -77,52 +77,60 @@ type HookIgnore struct {
 }
 
 // Upsert insert on duplicate update
-func (o *HookIgnore) Upsert() error {
+func (o *HookIgnore) Upsert() (rows int64, err error) {
 	o.setDefault()
-	result := db.Clauses(clause.OnConflict{
-		DoUpdates: clause.AssignmentColumns(GetUpsertAllColumns(o)),
-	}).Create(&o)
 
-	o.IsTarget()
+	var columns = GetUpsertAllColumns(o)
+	var clause = clause.OnConflict{DoUpdates: clause.AssignmentColumns(columns)}
+	logger.Debug("HookIgnore.Upsert() > ", "columns ", columns)
 
-	// cache update
-	o.updateHookIgnoreCache()
-	return result.Error
+	result := db.Clauses(clause).Create(&o)
+	if result.Error == nil {
+		// cache update
+		logger.Debug("HookIgnore.Upsert() > ", "updateHookCache ", o.GetKey())
+		o.updateHookCache()
+	} else {
+		logger.Error("HookIgnore.Upsert() > ", result.Error)
+	}
+	return result.RowsAffected, result.Error
 }
 
 // Delete delete row
 func (o *HookIgnore) Delete() (int64, error) {
 	o.setDefault()
 	result := db.Delete(o)
-
-	// cache update
-	o.deleteHookIgnoreCache()
+	if result.Error == nil {
+		// cache delete
+		logger.Debug("HookIgnore.Delete() > ", "deleteHookCache ", o.GetKey())
+		o.deleteHookCache()
+	} else {
+		logger.Error("HookIgnore.Delete() > ", result.Error)
+	}
 	return result.RowsAffected, result.Error
 }
 
 // new ignore cache
-func (o *HookIgnore) updateHookIgnoreCache() {
-	logger.Debug("Update cache", o.GetKey())
+func (o *HookIgnore) updateHookCache() {
+	logger.Debug("syncHookCache > ", "Update cache", o.GetKey())
 	hookIgnoreMap[o.GetKey()] = *o
 }
 
 // del ignore cache
-func (o *HookIgnore) deleteHookIgnoreCache() {
-	logger.Debug("Delete cache", o.GetKey())
+func (o *HookIgnore) deleteHookCache() {
+	logger.Debug("syncHookCache > ", "Delete cache", o.GetKey())
 	delete(hookIgnoreMap, o.GetKey())
 }
 
 // full sync with database
-func (o *HookIgnore) syncHookIgnoreCache() {
+func (o *HookIgnore) syncHookCache() {
+	logger.Info("syncHookCache > ", "Update hook ignore map start")
 	var hookIgnores []HookIgnore
-
-	logger.Info("syncHookIgnoreCache() Update hook ignore map start")
 	hookIgnoreMtx.Lock()
 	defer hookIgnoreMtx.Unlock()
 
 	// Get all hook ignores from database
 	if result := db.Find(&hookIgnores); result.Error != nil {
-		logger.Error("syncHookIgnoreCache() > db.Find(&hookIgnores) - ", result.Error)
+		logger.Error("syncHookCache > ", "db.Find(&hookIgnores) - ", result.Error)
 		return
 	}
 
@@ -131,10 +139,10 @@ func (o *HookIgnore) syncHookIgnoreCache() {
 	for _, hookIgnore := range hookIgnores {
 		k := hookIgnore.GetKey()
 		tmpHookIgnoreMap[k] = hookIgnore
-		logger.Debug("syncHookIgnoreCache() >> entry: ", k)
+		logger.Debug("syncHookCache > ", "** entry: ", k)
 	}
 	hookIgnoreMap = tmpHookIgnoreMap
-	logger.Info("syncHookIgnoreCache() End, ", len(hookIgnoreMap), " entries")
+	logger.Info("syncHookCache > ", "End, ", len(hookIgnoreMap), " entries")
 }
 
 // IsTarget check map
@@ -144,51 +152,50 @@ func (o *HookIgnore) IsTarget() bool {
 	// All hook
 	key = (&HookIgnore{}).GetKey()
 	if val, ok := hookIgnoreMap[key]; ok && val.isValiadRange() {
-		logger.Info("Skip:: Global alert")
+		logger.Debug("HookIgnore.IsTarget > ", "global_skip:"+o.GetKey())
 		return true
 	}
 
 	// Instance alert
 	key = (&HookIgnore{Instance: o.Instance}).GetKey()
 	if val, ok := hookIgnoreMap[key]; ok && val.isValiadRange() {
-		logger.Info("Skip:: Instance alert")
+		logger.Debug("HookIgnore.IsTarget > ", "instance_skip:"+o.GetKey())
 		return true
 	}
 
 	// Instance & AlertName alert
 	key = (&HookIgnore{Instance: o.Instance, AlertName: o.AlertName}).GetKey()
 	if val, ok := hookIgnoreMap[key]; ok && val.isValiadRange() {
-		logger.Info("Skip:: Instance & AlertName alert")
+		logger.Debug("HookIgnore.IsTarget > ", "instance_alertname_skip:"+o.GetKey())
 		return true
 	}
 
 	// Instance & AlertName & Job alert
 	key = (&HookIgnore{Instance: o.Instance, AlertName: o.AlertName, Job: o.Job}).GetKey()
 	if val, ok := hookIgnoreMap[key]; ok && val.isValiadRange() {
-		logger.Info("Skip:: Instance & AlertName alert")
+		logger.Debug("HookIgnore.IsTarget > ", "instance_alertname_job_skip:"+o.GetKey())
 		return true
 	}
 
 	// Instance & AlertName & Job & Status alert
 	key = (&HookIgnore{Instance: o.Instance, AlertName: o.AlertName, Job: o.Job, Status: o.Status}).GetKey()
 	if val, ok := hookIgnoreMap[key]; ok && val.isValiadRange() {
-		logger.Info("Skip:: Instance & AlertName & Status alert")
+		logger.Debug("HookIgnore.IsTarget > ", "instance_alertname_job_status_skip:"+o.GetKey())
 		return true
 	}
-
 	return false
 }
 
 func (o *HookIgnore) isValiadRange() bool {
 	if o.Forever {
-		logger.Debug("forever skip =>", o.GetKey())
+		logger.Debug("HookIgnore.isValiadRange > ", "foever_skip :"+o.GetKey())
 		return true
 	}
 
 	unixNow := time.Now().Unix()
 	unixStartsAt := o.StartsAt.Unix()
 	unixEndsAt := o.EndsAt.Unix()
-	logger.Debug("unixNow:", unixNow, "unixStartsAt:", unixStartsAt, "unixEndsAt:", unixEndsAt)
+	logger.Debug("HookIgnore.isValiadRange > ", "unixNow:", unixNow, "unixStartsAt:", unixStartsAt, "unixEndsAt:", unixEndsAt)
 	if unixNow >= unixStartsAt && unixNow <= unixEndsAt {
 		return true
 	}
@@ -199,13 +206,13 @@ func (o *HookIgnore) setDefault() {
 
 	if o.StartsAt == nil {
 		startsAt := time.Now()
-		logger.Debug("startsAt is null, set", startsAt)
+		logger.Debug("HookIgnore.setDefault > ", "startsAt is null, set", startsAt)
 		o.StartsAt = &startsAt
 	}
 
 	if o.EndsAt == nil {
 		endsAt := o.StartsAt.Add(24 * time.Hour)
-		logger.Debug("endsAt is null, set", endsAt)
+		logger.Debug("HookIgnore.setDefault > ", "endsAt is null, set", endsAt)
 		o.EndsAt = &endsAt
 	}
 
@@ -214,7 +221,7 @@ func (o *HookIgnore) setDefault() {
 		o.AlertName = "*"
 		o.Job = "*"
 		o.Status = "*"
-		logger.Debug(o)
+		logger.Debug("HookIgnore.setDefault > ", "Instance empty")
 		return
 	}
 
@@ -222,19 +229,20 @@ func (o *HookIgnore) setDefault() {
 		o.AlertName = "*"
 		o.Job = "*"
 		o.Status = "*"
-		logger.Debug(o)
+		logger.Debug("HookIgnore.setDefault > ", "AlertName empty")
 		return
 	}
 
 	if o.Job == "" {
 		o.Job = "*"
 		o.Status = "*"
-		logger.Debug(o)
+		logger.Debug("HookIgnore.setDefault > ", "Job empty")
 		return
 	}
 
 	if o.Status == "" {
 		o.Status = "*"
+		logger.Debug("HookIgnore.setDefault > ", "Status empty")
 		logger.Debug(o)
 	}
 }
@@ -253,7 +261,7 @@ func (o *HookIgnore) GetKey() (md5 string) {
 func startHookIgnoreMapThread() {
 	go func() {
 		for {
-			(&HookIgnore{}).syncHookIgnoreCache()
+			(&HookIgnore{}).syncHookCache()
 			time.Sleep(time.Duration(common.CONF.Webhook.SyncSec) * time.Second)
 		}
 	}()

@@ -14,9 +14,12 @@ var logging = strings.ToLower(os.Getenv("LOGGING"))
 func GetLogger() (log *logrus.Logger) {
 	log = logrus.New()
 	log.SetFormatter(&logrus.TextFormatter{
+		// DisableLevelTruncation: true,
+		// DisableTimestamp: true,
 		FullTimestamp:    true,
 		QuoteEmptyFields: true,
-		TimestampFormat:  "2006-01-02T15:04:05.999-0700",
+		// TimestampFormat:  "2006-01-02T15:04:05.999-0700",
+		TimestampFormat: "15:04:05",
 	})
 
 	switch logging {
