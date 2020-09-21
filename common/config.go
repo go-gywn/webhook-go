@@ -13,30 +13,29 @@ import (
 
 // Config config
 type Config struct {
-	Base     string
-	Port     string
-	Timezone string
-	Key      string
-	LogLevel string
-	Database Database
-	Webhook  Webhook
+	Base     string   `yaml:"base"`
+	Port     string   `yaml:"port"`
+	Timezone string   `yaml:"timezone"`
+	Key      string   `yaml:"key"`
+	Database Database `yaml:"database"`
+	Webhook  Webhook  `yaml:"webhook"`
 }
 
 // Database Database
 type Database struct {
-	Host   string
-	User   string
-	Pass   string
-	Schema string
+	Host   string `yaml:"host"`
+	User   string `yaml:"user"`
+	Pass   string `yaml:"pass"`
+	Schema string `yaml:"schema"`
 }
 
 // Webhook Webhook
 type Webhook struct {
-	SyncSec          int
-	Template         string
-	LabelMapper      map[string]string
-	AnnotationMapper map[string]string
-	Targets          map[string]WebhookTarget
+	CacheSyncSec     int                      `yaml:"cacheSyncSec"`
+	Template         string                   `yaml:"template"`
+	LabelMapper      map[string]string        `yaml:"labelMapper"`
+	AnnotationMapper map[string]string        `yaml:"annotationMapper"`
+	Targets          map[string]WebhookTarget `yaml:"targets"`
 }
 
 // WebhookTarget webhook target
@@ -46,8 +45,33 @@ type WebhookTarget struct {
 	Method string
 }
 
-// CONF config
-var CONF Config
+// CONF default config (overwritten by configure.yml)
+var CONF = Config{
+	Base:     "webhook",
+	Port:     ":52802",
+	Timezone: "UTC",
+	Key:      "03a73f3e7c9a7b38d196cd34c072567e",
+	Database: Database{
+		Host:   "127.0.0.1:3306",
+		User:   "dbadmin",
+		Pass:   "l-6ILJ3Y6yahD7ibKwNe-t12rt1ahMUU6mI=",
+		Schema: "dbadmin",
+	},
+	Webhook: Webhook{
+		CacheSyncSec: 60,
+		Template:     "tempalte.tpl",
+		LabelMapper: map[string]string{
+			"alertname": "alertname",
+			"instance":  "instance",
+			"level":     "level",
+			"job":       "job",
+		},
+		AnnotationMapper: map[string]string{
+			"description": "description",
+			"summary":     "summary",
+		},
+	},
+}
 
 var location *time.Location
 var logger = goutil.GetLogger()
@@ -81,9 +105,6 @@ func init() {
 	// ==========================
 	// encrypt password to use
 	// ==========================
-	if CONF.Key == "" {
-		CONF.Key = "03a73f3e7c9a7b38d196cd34c072567e"
-	}
 
 	if password != "" {
 		crypto := goutil.GetCrypto(CONF.Key)
@@ -92,41 +113,20 @@ func init() {
 	}
 
 	// ==========================
-	// Config parameter check
+	// Config check
 	// ==========================
 
 	// Timezone setting
 	if location, err = time.LoadLocation(CONF.Timezone); err != nil {
-		logger.Info("set timezone failed, set to UTC")
-		location, _ = time.LoadLocation("UTC")
-		os.Setenv("TZ", CONF.Timezone)
+		logger.Fatal("Load timezone '", CONF.Timezone, "' failed")
+	}
+	os.Setenv("TZ", CONF.Timezone)
+
+	// Label & Annotation mapper check
+	if len(CONF.Webhook.LabelMapper) == 0 || len(CONF.Webhook.AnnotationMapper) == 0 {
+		logger.Fatal("Mapper has no entry, exit")
 	}
 
-	// Load default label setting
-	dafaultLabels := []string{"alertname", "instance", "level", "job"}
-	if CONF.Webhook.LabelMapper == nil {
-		CONF.Webhook.LabelMapper = map[string]string{}
-	}
-	for _, key := range dafaultLabels {
-		if val, ok := CONF.Webhook.LabelMapper[key]; !ok || val == "" {
-			CONF.Webhook.LabelMapper[key] = key
-		}
-	}
-	// Load default annotation label setting
-	dafaultAnnotations := []string{"description", "summary"}
-	if CONF.Webhook.AnnotationMapper == nil {
-		CONF.Webhook.AnnotationMapper = map[string]string{}
-	}
-	for _, key := range dafaultAnnotations {
-		if val, ok := CONF.Webhook.AnnotationMapper[key]; !ok || val == "" {
-			CONF.Webhook.AnnotationMapper[key] = key
-		}
-	}
-
-	// Default cache load sec
-	if CONF.Webhook.SyncSec == 0 {
-		CONF.Webhook.SyncSec = 60
-	}
 	logger.Println("start with", CONF)
 }
 

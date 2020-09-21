@@ -2,6 +2,9 @@ package handler
 
 import (
 	"html/template"
+	"io"
+	"log"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-gywn/goutil"
@@ -34,7 +37,17 @@ var labelDescription = common.CONF.Webhook.AnnotationMapper["description"]
 
 func init() {
 	gin.SetMode(goutil.GinMode())
-	gin.SetMode(gin.ReleaseMode)
+
+	// gin.DisableConsoleColor()
+
+	logFile := "logs/gin.log"
+	// Logging to a file.
+	f, err := os.Create(logFile)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	gin.DefaultWriter = io.MultiWriter(f)
 }
 
 // StartHandler start API server

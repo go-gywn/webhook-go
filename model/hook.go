@@ -123,7 +123,7 @@ func (o *HookIgnore) deleteHookCache() {
 
 // full sync with database
 func (o *HookIgnore) syncHookCache() {
-	logger.Info("syncHookCache > ", "Update hook ignore map start")
+	logger.Debug("syncHookCache > ", "Update hook ignore map start")
 	var hookIgnores []HookIgnore
 	hookIgnoreMtx.Lock()
 	defer hookIgnoreMtx.Unlock()
@@ -142,7 +142,7 @@ func (o *HookIgnore) syncHookCache() {
 		logger.Debug("syncHookCache > ", "** entry: ", k)
 	}
 	hookIgnoreMap = tmpHookIgnoreMap
-	logger.Info("syncHookCache > ", "End, ", len(hookIgnoreMap), " entries")
+	logger.Info("syncHookCache > ", "Updated cache , ", len(hookIgnoreMap), " entries")
 }
 
 // IsTarget check map
@@ -262,14 +262,14 @@ func startHookIgnoreMapThread() {
 	go func() {
 		for {
 			(&HookIgnore{}).syncHookCache()
-			time.Sleep(time.Duration(common.CONF.Webhook.SyncSec) * time.Second)
+			time.Sleep(time.Duration(common.CONF.Webhook.CacheSyncSec) * time.Second)
 		}
 	}()
 }
 
 // Notification notification alert - single alert
 type Notification struct {
-	Alertname string `form:"alertname"    json:"alertname"`
+	Alertname string `form:"alertname" json:"alertname"`
 	Instance  string `form:"instance"  json:"instance"`
 	Level     string `form:"level"     json:"level"`
 	Summary   string `form:"summary"   json:"summary"`

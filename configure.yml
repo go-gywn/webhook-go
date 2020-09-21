@@ -1,6 +1,5 @@
 base: "webhook"
 port: ":52802"
-# loglevel: "RELEASE" ## DEBUG / TEST / RELEASE
 timezone: "Asia/Seoul"
 
 database:
@@ -10,14 +9,14 @@ database:
   schema: "dbadmin"
 
 webhook:
-  syncsec: 60
+  cacheSyncSec: 60
   template: "tempalte.tpl"
-  labelmapper:
+  labelMapper:
     alertname: "alertname"
     instance: "instance"
     level: "level"
     job: "job"
-  annotationmapper:
+  annotationMapper:
     description: "description"
     summary: "summary"
   targets:

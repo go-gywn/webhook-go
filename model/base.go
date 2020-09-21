@@ -12,8 +12,6 @@ import (
 	_ "github.com/go-sql-driver/mysql" // for gorm
 )
 
-const pkg = "model >>"
-
 var db *gorm.DB
 var logger = goutil.GetLogger()
 var cryptor = goutil.GetCrypto(common.CONF.Key)
