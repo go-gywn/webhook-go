@@ -46,32 +46,7 @@ type WebhookTarget struct {
 }
 
 // CONF default config (overwritten by configure.yml)
-var CONF = Config{
-	Base:     "webhook",
-	Port:     ":52802",
-	Timezone: "UTC",
-	Key:      "03a73f3e7c9a7b38d196cd34c072567e",
-	Database: Database{
-		Host:   "127.0.0.1:3306",
-		User:   "dbadmin",
-		Pass:   "l-6ILJ3Y6yahD7ibKwNe-t12rt1ahMUU6mI=",
-		Schema: "dbadmin",
-	},
-	Webhook: Webhook{
-		CacheSyncSec: 60,
-		Template:     "tempalte.tpl",
-		LabelMapper: map[string]string{
-			"alertname": "alertname",
-			"instance":  "instance",
-			"level":     "level",
-			"job":       "job",
-		},
-		AnnotationMapper: map[string]string{
-			"description": "description",
-			"summary":     "summary",
-		},
-	},
-}
+var CONF Config
 
 var location *time.Location
 var logger = goutil.GetLogger()
@@ -89,23 +64,27 @@ func init() {
 	flag.Parse()
 
 	// ==========================
-	// Read config file
+	// Load default configuration
+	// ==========================
+	if err = yaml.Unmarshal([]byte(defaultConfigure), &CONF); err != nil {
+		logger.Fatal(err)
+	}
+
+	// ==========================
+	// Read config file and load
 	// ==========================
 	var b []byte
 	if b, err = ioutil.ReadFile(config); err != nil {
-		logger.Error(err)
-		return
-		//panic(err)
+		logger.Fatal(err)
 	}
 
 	if err = yaml.Unmarshal(b, &CONF); err != nil {
-		panic(err)
+		logger.Fatal(err)
 	}
 
 	// ==========================
 	// encrypt password to use
 	// ==========================
-
 	if password != "" {
 		crypto := goutil.GetCrypto(CONF.Key)
 		fmt.Printf("<Encrypted>\n%s\n", crypto.EncryptAES(password))
@@ -134,3 +113,37 @@ func init() {
 func GetLocation() *time.Location {
 	return location
 }
+
+var defaultConfigure = `
+base: "webhook"
+port: ":52802"
+timezone: "Asia/Seoul"
+key: "03a73f3e7c9a7b38d196cd34c072567e"
+
+database:
+  host: "127.0.0.1:3306"
+  user: "dbadmin"
+  pass: "l-6ILJ3Y6yahD7ibKwNe-t12rt1ahMUU6mI="
+  schema: "dbadmin"
+
+webhook:
+  cacheSyncSec: 60
+  template: "tempalte.tpl"
+  labelMapper:
+    alertname: "alertname"
+    instance: "instance"
+    level: "level"
+    job: "job"
+  annotationMapper:
+    description: "description"
+    summary: "summary"
+  targets:
+    critical:
+      api: "http://127.0.0.1:52802/webhook/hook/test"
+      params: "id=12345&message=[[message]]"
+      method: "POST"
+    warning:
+      api: "http://127.0.0.1:52802/webhook/hook/test"
+      params: "id=54321&message=[[message]]"
+      method: "POST"
+`

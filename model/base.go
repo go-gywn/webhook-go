@@ -31,6 +31,7 @@ func OpenDatabase() {
 	user := common.CONF.Database.User
 	schema := common.CONF.Database.Schema
 	pass := cryptor.DecryptAES(common.CONF.Database.Pass)
+	logger.Debug("pass ==> ", pass)
 
 	dsn := user + ":" + pass + "@tcp(" + host + ")/" + schema + "?charset=utf8&parseTime=True&loc=Local"
 	cfg := &gorm.Config{
