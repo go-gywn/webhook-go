@@ -276,7 +276,7 @@ func hookSender(chanHook chan t.Alert) {
 			}
 
 			if hook.Ignored == "Y" {
-				return
+				continue
 			}
 			// ============================================
 			// Send alarm
