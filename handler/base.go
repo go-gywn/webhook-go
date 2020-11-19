@@ -39,8 +39,8 @@ func init() {
 	gin.SetMode(goutil.GinMode())
 
 	// gin.DisableConsoleColor()
+	logFile := fileUtil.GetABSPath() + "/logs/gin.log"
 
-	logFile := "logs/gin.log"
 	// Logging to a file.
 	f, err := os.Create(logFile)
 	if err != nil {
