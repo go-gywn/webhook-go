@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -278,6 +278,7 @@ func hookSender(chanHook chan t.Alert) {
 			if hook.Ignored == "Y" {
 				continue
 			}
+
 			// ============================================
 			// Send alarm
 			// ============================================

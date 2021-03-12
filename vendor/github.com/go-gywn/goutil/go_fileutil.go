@@ -2,10 +2,10 @@ package goutil
 
 import (
 	"fmt"
-	"html/template"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"text/template"
 )
 
 // FileUtil FileUtil

@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"html/template"
 	"io"
 	"log"
 	"os"
+	"text/template"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-gywn/goutil"
