@@ -282,7 +282,7 @@ func hookSender(chanHook chan t.Alert) {
 			// Send alarm
 			// ============================================
 			httpClient := &http.Client{Timeout: 3 * time.Second}
-			urlencodedParams := strings.Replace(apiParams, "[[message]]", url.QueryEscape(message), -1)
+			urlencodedParams := strings.Replace(apiParams, "[[message]]", url.QueryEscape(strings.TrimSpace(message)), -1)
 			switch strings.ToUpper(target.Method) {
 			case "POST":
 				resp, err := httpClient.Post(api, "application/x-www-form-urlencoded", strings.NewReader(urlencodedParams))
