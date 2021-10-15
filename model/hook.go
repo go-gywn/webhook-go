@@ -15,8 +15,8 @@ type Hook struct {
 	HookID      string       `json:"hook_id"       gorm:"column:hook_id;      type:varchar(32) not null default ''; primaryKey"`
 	AlertName   string       `json:"alert_name"    gorm:"column:alert_name;   type:varchar(32) not null default ''; index:ix_name,priority:1"`
 	Instance    string       `json:"instance"      gorm:"column:instance;     type:varchar(32) not null default ''; index:ix_inst,priority:1"`
-	Job         string       `json:"job"           gorm:"column:job;          type:varchar(10) not null default ''"`
-	Level       string       `json:"level"         gorm:"column:level;        type:varchar(10) not null default ''"`
+	Job         string       `json:"job"           gorm:"column:job;          type:varchar(20) not null default ''"`
+	Level       string       `json:"level"         gorm:"column:level;        type:varchar(20) not null default ''"`
 	Ignored     string       `json:"ignored"       gorm:"column:ignored;      type:varchar(1) not null default 'N'; index:ix_ignored,priority:1"`
 	Status      string       `json:"status"        gorm:"column:status;       type:varchar(10) not null default ''"`
 	StartsAt    *time.Time   `json:"starts_at"     gorm:"column:starts_at;    type:datetime(3) null; index:ix_startat; index:ix_name,priority:2; index:ix_inst,priority:2; index:ix_ignored,priority:2"`
@@ -67,7 +67,7 @@ func (o *Hook) Upsert(hookColumns ...string) error {
 type HookIgnore struct {
 	Instance  string     `form:"instance"    json:"instance"      gorm:"column:instance;     type:varchar(32) not null default '*'; primaryKey"`
 	AlertName string     `form:"alert_name"  json:"alert_name"    gorm:"column:alert_name;   type:varchar(32) not null default '*'; primaryKey"`
-	Job       string     `form:"job"         json:"job"           gorm:"column:job;          type:varchar(10) not null default '*'"`
+	Job       string     `form:"job"         json:"job"           gorm:"column:job;          type:varchar(20) not null default '*'"`
 	Status    string     `form:"status"      json:"status"        gorm:"column:status;       type:varchar(10) not null default '*'; primaryKey"`
 	Forever   bool       `form:"forever"     json:"forever"       gorm:"column:forever;      type:tinyint not null default false"`
 	StartsAt  *time.Time `form:"starts_at"   json:"starts_at"     gorm:"column:starts_at;    type:datetime not null"`
