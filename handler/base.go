@@ -38,8 +38,14 @@ var labelDescription = common.CONF.Webhook.AnnotationMapper["description"]
 func init() {
 	gin.SetMode(goutil.GinMode())
 
+	logDir := fileUtil.GetABSPath() + "/logs"
+	if _, err := os.Stat(logDir); os.IsNotExist(err) {
+		os.Mkdir(logDir, 0755)
+		// TODO: handle error
+	}
+
 	// gin.DisableConsoleColor()
-	logFile := fileUtil.GetABSPath() + "/logs/gin.log"
+	logFile := logDir + "/gin.log"
 
 	// Logging to a file.
 	f, err := os.Create(logFile)

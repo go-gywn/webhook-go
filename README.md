@@ -12,6 +12,9 @@ go get github.com/go-gywn/webhook-go
 cd $GOPATH/src/github.com/go-gywn/webhook-go
 go build .
 ./webhook-go
+
+## debugging
+LOGGING=debug ./webhook-go 
 ```
 
 ## Config for prometheus & alertmanager
