@@ -12,16 +12,16 @@ import (
 
 // Hook Hook
 type Hook struct {
-	HookID      string       `json:"hook_id"       gorm:"column:hook_id;      type:varchar(32) not null default ''; primaryKey"`
-	AlertName   string       `json:"alert_name"    gorm:"column:alert_name;   type:varchar(32) not null default ''; index:ix_name,priority:1"`
-	Instance    string       `json:"instance"      gorm:"column:instance;     type:varchar(32) not null default ''; index:ix_inst,priority:1"`
-	Job         string       `json:"job"           gorm:"column:job;          type:varchar(20) not null default ''"`
-	Level       string       `json:"level"         gorm:"column:level;        type:varchar(20) not null default ''"`
-	Ignored     string       `json:"ignored"       gorm:"column:ignored;      type:varchar(1) not null default 'N'; index:ix_ignored,priority:1"`
-	Status      string       `json:"status"        gorm:"column:status;       type:varchar(10) not null default ''"`
-	StartsAt    *time.Time   `json:"starts_at"     gorm:"column:starts_at;    type:datetime(3) null; index:ix_startat; index:ix_name,priority:2; index:ix_inst,priority:2; index:ix_ignored,priority:2"`
-	EndsAt      *time.Time   `json:"ends_at"       gorm:"column:ends_at;      type:datetime(3) null"`
-	HookDetails []HookDetail `json:"hook_details"  gorm:"-"`
+	HookID      string       `form:"hook_id"      json:"hook_id"       gorm:"column:hook_id;      type:varchar(32) not null default ''; primaryKey"`
+	AlertName   string       `form:"alert_name"   json:"alert_name"    gorm:"column:alert_name;   type:varchar(32) not null default ''; index:ix_name,priority:1"`
+	Instance    string       `form:"instance"     json:"instance"      gorm:"column:instance;     type:varchar(32) not null default ''; index:ix_inst,priority:1"`
+	Job         string       `form:"job"          json:"job"           gorm:"column:job;          type:varchar(20) not null default ''"`
+	Level       string       `form:"level"        json:"level"         gorm:"column:level;        type:varchar(20) not null default ''"`
+	Ignored     string       `form:"ignored"      json:"ignored"       gorm:"column:ignored;      type:varchar(1) not null default 'N'; index:ix_ignored,priority:1"`
+	Status      string       `form:"status"       json:"status"        gorm:"column:status;       type:varchar(10) not null default ''"`
+	StartsAt    *time.Time   `form:"starts_at"    json:"starts_at"     gorm:"column:starts_at;    type:datetime(3) null; index:ix_startat; index:ix_name,priority:2; index:ix_inst,priority:2; index:ix_ignored,priority:2"`
+	EndsAt      *time.Time   `form:"ends_at"      json:"ends_at"       gorm:"column:ends_at;      type:datetime(3) null"`
+	HookDetails []HookDetail `json:"hook_details" gorm:"foreignKey:HookID"`
 	UpdatedAt   time.Time    `json:"updated_at"`
 }
 
@@ -63,6 +63,46 @@ func (o *Hook) Upsert(hookColumns ...string) error {
 	})
 }
 
+func (o *Hook) GetList(limit int) (r []Hook, err error) {
+	logger.Debug("Hook.GetList() start")
+
+	clauseMap := map[string]interface{}{}
+	if o.HookID != "" {
+		clauseMap["hook_id"] = o.HookID
+	}
+	if o.AlertName != "" {
+		clauseMap["alert_name"] = o.AlertName
+	}
+	if o.Instance != "" {
+		clauseMap["instance"] = o.Instance
+	}
+	if o.Job != "" {
+		clauseMap["job"] = o.Job
+	}
+	if o.Status != "" {
+		clauseMap["status"] = o.Status
+	}
+	if o.Level != "" {
+		clauseMap["level"] = o.Level
+	}
+	tx := db.Where(clauseMap)
+
+	if o.StartsAt != nil {
+		tx = tx.Where("starts_at >= ?", *o.StartsAt)
+	}
+	if o.EndsAt != nil {
+		tx = tx.Where("ends_at < ?", *o.EndsAt)
+	}
+
+	tx = tx.Order("starts_at desc").Limit(limit)
+
+	if result := tx.Preload(clause.Associations).Find(&r); result.Error != nil {
+		logger.Error(result.Error)
+		err = result.Error
+	}
+	return
+}
+
 // HookIgnore hook ignore target
 type HookIgnore struct {
 	Instance  string     `form:"instance"    json:"instance"      gorm:"column:instance;     type:varchar(32) not null default '*'; primaryKey"`
@@ -74,6 +114,16 @@ type HookIgnore struct {
 	EndsAt    *time.Time `form:"ends_at"     json:"ends_at"       gorm:"column:ends_at;      type:datetime not null"`
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`
+}
+
+func (o *HookIgnore) GetList() (r []HookIgnore, err error) {
+	logger.Debug("HookIgnore.GetList() start")
+
+	if result := db.Preload(clause.Associations).Find(&r); result.Error != nil {
+		logger.Error(result.Error)
+		err = result.Error
+	}
+	return
 }
 
 // Upsert insert on duplicate update

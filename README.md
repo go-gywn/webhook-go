@@ -130,11 +130,13 @@ REST API to controll webhook
 Method | API                            | Description
 -------|--------------------------------|-------------
 POST   | /webhook/hook/template/reload  | template reload
+GET    | /webhook/hook/ignores          | get current ignore alerts
 POST   | /webhook/hook/ignore           | add new to ignore alert
-DELETE | /webhook/hook/ignore           | delete ingnored alert
+DELETE | /webhook/hook/ignore           | delete ignored alert
 POST   | /webhook/hook/send             | webhook endpoint, this is for AlertManager webhook config
 POST   | /webhook/hook/shoot            | One time alert POST API
 GET    | /webhook/hook/shoot            | One time alert GET API
+GET    | /webhook/hook/alerts           | get alerts
 POST   | /webhook/hook/test             | TEST listen POST API
 GET    | /webhook/hook/test             | TEST listen GET API
 
@@ -182,7 +184,22 @@ GET    | /webhook/hook/test             | TEST listen GET API
     --data-urlencode 'summary=test alert summary' \
     --data-urlencode 'message=this is test alert message' \
     127.0.0.1:52802/webhook/hook/shoot
-    ```
+   
+   ## List current ignore rules
+   curl -G 127.0.0.1:52802/webhook/hook/ignores
+   
+   ## List last sent alerts(params are optional)
+   curl -G                                                     \
+   --data-urlencode 'hook_id=29a2f8a791b3958e48eb679ed73fd61d' \
+   --data-urlencode 'alert_name=node_cpu_usage'                \
+   --data-urlencode 'level=critical'                           \
+   --data-urlencode 'job=linux'                                \
+   --data-urlencode 'instance=ena031'                          \
+   --data-urlencode 'starts_at=2020-09-14T00:00:00+09:00'      \
+   --data-urlencode 'ends_at=2020-09-21T00:00:00+09:00'        \
+   --data-urlencode 'rows=2'                                   \
+   127.0.0.1:52802/webhook/hook/alerts
+   ```
 Enjoy!
 
 (Special thanks for good testing, [@ena-yoon]( https://github.com/ena-yoon ))

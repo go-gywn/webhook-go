@@ -143,8 +143,47 @@ func startHook(r *gin.RouterGroup) {
 
 	r.GET("/hook/test", func(c *gin.Context) {
 		logger.Info("GET request")
-		logger.Info(c.GetPostForm("message"))
+		logger.Info(c.GetQuery("message"))
 		Success(c, "ok")
+	})
+
+	r.GET("/hook/ignores", func(c *gin.Context) {
+		var err error
+		var params model.HookIgnore
+		var lists []model.HookIgnore
+
+		lists, err = params.GetList()
+		if ErrorIf(c, err) {
+			logger.Error(err)
+			return
+		}
+		Success(c, lists)
+	})
+
+	r.GET("/hook/alerts", func(c *gin.Context) {
+		var err error
+		var params model.Hook
+		var lists []model.Hook
+
+		// bind template json data
+		err = c.Bind(&params)
+		if ErrorIf(c, err) {
+			logger.Error(err)
+			return
+		}
+
+		rowsValue, _ := c.GetQuery("rows")
+		limit := common.ParseInt(rowsValue)
+		if limit == 0 {
+			limit = 100
+		}
+
+		lists, err = params.GetList(limit)
+		if ErrorIf(c, err) {
+			logger.Error(err)
+			return
+		}
+		Success(c, lists)
 	})
 
 }
