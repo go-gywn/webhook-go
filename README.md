@@ -129,6 +129,9 @@ REST API to controll webhook
 
 Method | API                            | Description
 -------|--------------------------------|-------------
+GET    | /webhook/hook/template         | template read
+POST   | /webhook/hook/template         | template update
+POST   | /webhook/hook/template/check   | template check
 POST   | /webhook/hook/template/reload  | template reload
 GET    | /webhook/hook/ignores          | get current ignore alerts
 POST   | /webhook/hook/ignore           | add new to ignore alert
@@ -141,8 +144,32 @@ POST   | /webhook/hook/test             | TEST listen POST API
 GET    | /webhook/hook/test             | TEST listen GET API
 
 ### Example
-1. Template reload
+1. Template
     ```bash
+    ## Template read
+    curl -X GET 127.0.0.1:52802/webhook/hook/template
+
+    ## Template update
+    curl -X POST -d 'content=[{{ .status }}] {{ .summary }}
+    * Instance: {{ .instance }}
+    * Level: {{ .level }}{{ if eq .status "firing" }}
+    * Start: {{ .startsAt.Format "01/02 15:04:05 MST" }}{{ else }}
+    * Start: {{ .endsAt.Format "01/02 15:04:05 MST" }}
+    * End: {{ .endsAt.Format "01/02 15:04:05 MST" }}{{ end }}
+    * Desc: {{ .description }}' \
+    127.0.0.1:52802/webhook/hook/template
+
+    ## Template syntax check
+    curl -X POST -d 'content=[{{ .status }}] {{ .summary }}
+    * Instance: {{ .instance }}
+    * Level: {{ .level }}{{ if eq .status "firing" }}
+    * Start: {{ .startsAt.Format "01/02 15:04:05 MST" }}{{ else }}
+    * Start: {{ .endsAt.Format "01/02 15:04:05 MST" }}
+    * End: {{ .endsAt.Format "01/02 15:04:05 MST" }}{{ end }}
+    * Desc: {{ .description }}' \
+    127.0.0.1:52802/webhook/hook/template/check
+
+    ## Reload
     curl -XPOST 127.0.0.1:52802/webhook/hook/template/reload
     ```
 2. Add ignore target

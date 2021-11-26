@@ -135,6 +135,48 @@ func startHook(r *gin.RouterGroup) {
 		Success(c, "ok")
 	})
 
+	r.GET("/hook/template", func(c *gin.Context) {
+		content := readTemplate(common.CONF.Webhook.Template)
+		Success(c, content)
+	})
+
+	r.POST("/hook/template", func(c *gin.Context) {
+		var err error
+		content, b := c.GetPostForm("content")
+		if !b {
+			err = fmt.Errorf("content is empty")
+		}
+
+		if ErrorIf(c, err) {
+			logger.Error(err)
+			return
+		}
+
+		writeTemplate(common.CONF.Webhook.Template, content)
+		Success(c, "OK")
+	})
+
+	r.POST("/hook/template/check", func(c *gin.Context) {
+		var err error
+		content, b := c.GetPostForm("content")
+		if !b {
+			err = fmt.Errorf("content is empty")
+		}
+
+		if ErrorIf(c, err) {
+			logger.Error(err)
+			return
+		}
+
+		_, err = fileUtil.GetTemplate("template", content)
+		if ErrorIf(c, err) {
+			logger.Error(err)
+			return
+		}
+
+		Success(c, "OK")
+	})
+
 	r.POST("/hook/test", func(c *gin.Context) {
 		logger.Info("POST request")
 		logger.Info(c.GetPostForm("message"))
@@ -359,7 +401,23 @@ func loadTemplate(path ...string) (err error) {
 	if len(path) == 0 {
 		hookTemplate, _ = fileUtil.GetTemplate("template", defaultTemplate)
 	}
-	logger.Info("open template file ", common.CONF.Webhook.Template)
+	logger.Info("open template file ", path)
 	hookTemplate, err = fileUtil.GetTemplate("template", fileUtil.ReadFile(path[0]))
+	return
+}
+
+func readTemplate(path ...string) (content string) {
+	if len(path) == 0 {
+		logger.Debug("get default template ")
+		content = defaultTemplate
+	} else {
+		logger.Debug("read template file ", path)
+		content = fileUtil.ReadFile(path[0])
+	}
+	return
+}
+
+func writeTemplate(path string, content string) (err error) {
+	err = ioutil.WriteFile(path, []byte(content), 0644)
 	return
 }
