@@ -142,38 +142,23 @@ func startHook(r *gin.RouterGroup) {
 
 	r.POST("/hook/template", func(c *gin.Context) {
 		var err error
-		content, b := c.GetPostForm("content")
-		if !b {
-			err = fmt.Errorf("content is empty")
-		}
-
+		content, _ := c.GetPostForm("content")
+		err = writeTemplate(common.CONF.Webhook.Template, content)
 		if ErrorIf(c, err) {
 			logger.Error(err)
 			return
 		}
-
-		writeTemplate(common.CONF.Webhook.Template, content)
 		Success(c, "OK")
 	})
 
 	r.POST("/hook/template/check", func(c *gin.Context) {
 		var err error
-		content, b := c.GetPostForm("content")
-		if !b {
-			err = fmt.Errorf("content is empty")
-		}
-
+		content, _ := c.GetPostForm("content")
+		err = checkTemplate(content)
 		if ErrorIf(c, err) {
 			logger.Error(err)
 			return
 		}
-
-		_, err = fileUtil.GetTemplate("template", content)
-		if ErrorIf(c, err) {
-			logger.Error(err)
-			return
-		}
-
 		Success(c, "OK")
 	})
 
@@ -417,7 +402,17 @@ func readTemplate(path ...string) (content string) {
 	return
 }
 
+func checkTemplate(content string) (err error) {
+	if strings.TrimSpace(content) == "" {
+		return fmt.Errorf("template content is null")
+	}
+	_, err = fileUtil.GetTemplate("template", content)
+	return
+}
+
 func writeTemplate(path string, content string) (err error) {
-	err = ioutil.WriteFile(path, []byte(content), 0644)
+	if err = checkTemplate(content); err == nil {
+		err = ioutil.WriteFile(path, []byte(content), 0644)
+	}
 	return
 }
