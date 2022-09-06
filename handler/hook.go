@@ -333,7 +333,7 @@ func hookSender(chanHook chan t.Alert) {
 					logger.Error("DB -", err.Error(), string(jsonMarshal))
 				}
 			case "resolved":
-				if err := hook.Upsert(); err != nil {
+				if err := hook.Upsert("status", "ends_at", "updated_at"); err != nil {
 					logger.Error("DB -", err.Error(), string(jsonMarshal))
 				}
 			default:
